@@ -1,7 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { promises as fs } from "fs";
 import path from "path";
-import { EMPTY_DATA, FinanceData } from "./types";
+import { FinanceData } from "./types";
 
 const KEY = "finanz:daten";
 
@@ -51,7 +51,9 @@ export async function getData(): Promise<FinanceData> {
   } else {
     raw = await localRead();
   }
-  if (!raw || typeof raw !== "object") return EMPTY_DATA;
+  if (!raw || typeof raw !== "object") {
+    return { transactions: [], budgets: [], subs: [], goals: [] };
+  }
   const src = raw as Partial<FinanceData>;
   // Normalisieren: fehlende Felder ergänzen, damit Clients keine undefined-Arrays kriegen
   return {

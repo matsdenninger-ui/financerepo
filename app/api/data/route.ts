@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getData, setData, isUpstashConfigured } from "@/lib/store";
-import { EMPTY_DATA, EXPENSE_CATEGORIES, FinanceData, INCOME_CATEGORIES } from "@/lib/types";
+import { EXPENSE_CATEGORIES, FinanceData, INCOME_CATEGORIES } from "@/lib/types";
 
 
 function isValidNumber(n: unknown): n is number {
@@ -15,7 +15,8 @@ const CATEGORIES: ReadonlySet<string> = new Set([
 /** Validiert mitgebrachte Daten gegen ein Whitelist-Schema, damit keine Schrott-Werte in die DB kommen */
 function sanitize(input: unknown): FinanceData {
   const src = (input ?? {}) as Record<string, unknown>;
-  const out = EMPTY_DATA;
+  // Frisches Objekt: EMPTY_DATA ist eine geteilte Modul-Konstante und darf nicht mutiert werden
+  const out: FinanceData = { transactions: [], budgets: [], subs: [], goals: [] };
 
   if (Array.isArray(src.transactions)) {
     out.transactions = src.transactions
