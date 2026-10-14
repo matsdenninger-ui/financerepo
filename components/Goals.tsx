@@ -9,8 +9,14 @@ interface Props {
   onChange: (goals: Goal[]) => void;
 }
 
-const inputCls =
-  "w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500";
+function ring(p: number): { dash: string; color: string } {
+  const c = 2 * Math.PI * 15.5;
+  const filled = (Math.min(p, 100) / 100) * c;
+  return {
+    dash: `${filled} ${c - filled}`,
+    color: p >= 100 ? "var(--accent)" : "#a78bfa",
+  };
+}
 
 export default function Goals({ goals, onChange }: Props) {
   const [name, setName] = useState("");
@@ -37,71 +43,85 @@ export default function Goals({ goals, onChange }: Props) {
     onChange(
       goals.map((g) =>
         g.id === id
-          ? { ...g, saved: Math.min(g.target, Math.round((g.saved + amount) * 100) / 100) }
+          ? {
+              ...g,
+              saved: Math.min(
+                g.target,
+                Math.round((g.saved + amount) * 100) / 100
+              ),
+            }
           : g
       )
     );
   }
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-      <h2 className="text-sm font-semibold text-slate-300">
-        🚀 Sparziele
-      </h2>
+    <section className="card p-5">
+      <h2 className="text-sm font-semibold">Sparziele</h2>
 
-      <ul className="mt-3 space-y-4">
+      <ul className="mt-4 space-y-4">
         {goals.length === 0 && (
-          <li className="py-3 text-sm text-slate-500">
-            Führerschein? Erster Umzug? Notgroschen? Leg ein Ziel an! 🎯
+          <li className="py-4 text-sm text-zinc-600">
+            Führerschein, Umzug, Notgroschen — leg los.
           </li>
         )}
         {goals.map((g) => {
           const p = pct(g.saved, g.target);
           const left = Math.max(0, g.target - g.saved);
+          const r = ring(p);
           return (
-            <li key={g.id} className="rounded-xl bg-slate-800/60 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-slate-200">{g.name}</span>
-                <button
-                  onClick={() => onChange(goals.filter((x) => x.id !== g.id))}
-                  className="text-slate-500 transition hover:text-rose-400"
-                  aria-label={`${g.name} löschen`}
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="mt-1 text-xs text-slate-400">
-                {p >= 100 ? "🎉 Ziel erreicht!" : `${eur(g.saved)} von ${eur(g.target)} · noch ${eur(left)}`}
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-violet-500 transition-all"
-                  style={{ width: `${Math.min(p, 100)}%` }}
+            <li key={g.id} className="group flex items-center gap-4 rounded-xl bg-white/[0.03] p-3">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                className="shrink-0 -rotate-90"
+              >
+                <circle cx="20" cy="20" r="15.5" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="15.5"
+                  fill="none"
+                  stroke={r.color}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={r.dash}
+                  className="transition-all"
                 />
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs">
+              </svg>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-sm font-medium text-zinc-100">
+                    {g.name}
+                  </span>
+                  <button
+                    onClick={() => onChange(goals.filter((x) => x.id !== g.id))}
+                    className="shrink-0 text-zinc-700 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
+                    aria-label={`${g.name} löschen`}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="num mt-0.5 text-xs text-zinc-500">
+                  {eur(g.saved)} / {eur(g.target)} · {p} %
+                  {p >= 100 && <span style={{ color: "var(--accent)" }}> · geschafft 🎉</span>}
+                </p>
                 {p < 100 && (
-                  <>
-                    <button
-                      onClick={() => deposit(g.id, 10)}
-                      className="rounded-full bg-slate-700 px-2.5 py-1 font-medium text-slate-200 transition hover:bg-slate-600"
-                    >
-                      +10 €
-                    </button>
-                    <button
-                      onClick={() => deposit(g.id, 25)}
-                      className="rounded-full bg-slate-700 px-2.5 py-1 font-medium text-slate-200 transition hover:bg-slate-600"
-                    >
-                      +25 €
-                    </button>
-                    <button
-                      onClick={() => deposit(g.id, 50)}
-                      className="rounded-full bg-slate-700 px-2.5 py-1 font-medium text-slate-200 transition hover:bg-slate-600"
-                    >
-                      +50 €
-                    </button>
-                    <span className="ml-auto text-slate-500">{p} %</span>
-                  </>
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {[10, 25, 50].map((amt) => (
+                      <button
+                        key={amt}
+                        onClick={() => deposit(g.id, amt)}
+                        className="num rounded-md border border-white/10 px-2 py-0.5 text-[11px] text-zinc-300 transition hover:bg-white/10"
+                      >
+                        +{amt}
+                      </button>
+                    ))}
+                    <span className="ml-auto text-[11px] text-zinc-600">
+                      noch {eur(left)}
+                    </span>
+                  </div>
                 )}
               </div>
             </li>
@@ -111,26 +131,27 @@ export default function Goals({ goals, onChange }: Props) {
 
       <form onSubmit={add} className="mt-4 grid grid-cols-2 gap-2">
         <input
-          className={inputCls}
-          placeholder="Zielname (z. B. Führerschein)"
+          className="field col-span-2"
+          placeholder="Ziel (z. B. Führerschein)"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <input
-          className={inputCls}
+          className="field num"
           inputMode="decimal"
-          placeholder="Zielbetrag €"
+          placeholder="Ziel €"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
         />
-        <button
-          type="submit"
-          className="col-span-2 rounded-lg bg-violet-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-violet-400"
-        >
+        <button type="submit" className="ghost">
           Ziel anlegen
         </button>
       </form>
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {error && (
+        <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
+          {error}
+        </p>
+      )}
     </section>
   );
 }

@@ -9,9 +9,6 @@ interface Props {
   onChange: (subs: Sub[]) => void;
 }
 
-const inputCls =
-  "w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500";
-
 export default function Subs({ subs, onChange }: Props) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -35,14 +32,7 @@ export default function Subs({ subs, onChange }: Props) {
     }
     onChange([
       ...subs,
-      {
-        id: crypto.randomUUID(),
-        name: name.trim(),
-        amount: val,
-        day: d,
-        kind,
-        active: true,
-      },
+      { id: crypto.randomUUID(), name: name.trim(), amount: val, day: d, kind, active: true },
     ]);
     setName("");
     setAmount("");
@@ -50,33 +40,32 @@ export default function Subs({ subs, onChange }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-      <h2 className="text-sm font-semibold text-slate-300">
-        🔁 Abos &amp; Fixkosten
-      </h2>
+    <section className="card p-5">
+      <h2 className="text-sm font-semibold">Fixe Lasten</h2>
 
-      <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-slate-800/60 p-3">
+      <div className="mt-3 flex items-baseline gap-5">
         <div>
-          <p className="text-xs uppercase text-slate-400">pro Monat</p>
-          <p className="text-xl font-bold text-cyan-300">{eur(monthly)}</p>
+          <p className="label">pro Monat</p>
+          <p className="num text-2xl font-semibold" style={{ color: "#e4e4e7" }}>
+            {eur(monthly)}
+          </p>
         </div>
         <div>
-          <p className="text-xs uppercase text-slate-400">Abos pro Jahr 👀</p>
-          <p className="text-xl font-bold text-cyan-300">
+          <p className="label">abos / jahr</p>
+          <p className="num text-2xl font-semibold" style={{ color: "var(--danger)" }}>
             {eur(aboOnly * 12)}
           </p>
         </div>
       </div>
 
-      <ul className="mt-3 divide-y divide-slate-800">
+      <ul className="mt-4 divide-y divide-white/5">
         {subs.length === 0 && (
-          <li className="py-4 text-sm text-slate-500">
-            Noch keine Einträge — trag Spotify &amp; Co. ein und sieh, was du
-            monatlich fest verplanst.
+          <li className="py-4 text-sm text-zinc-600">
+            Spotify, Gym, Handy — hier rein, damit du weißt, was fix verplant ist.
           </li>
         )}
         {subs.map((s) => (
-          <li key={s.id} className="flex items-center gap-3 py-2 text-sm">
+          <li key={s.id} className="group flex items-center gap-3 py-2.5 text-sm">
             <input
               type="checkbox"
               checked={s.active}
@@ -87,19 +76,21 @@ export default function Subs({ subs, onChange }: Props) {
                   )
                 )
               }
-              className="h-4 w-4 accent-emerald-500"
+              className="h-4 w-4 accent-emerald-400"
               aria-label={`${s.name} aktiv`}
             />
-            <span className={s.active ? "" : "text-slate-500 line-through"}>
-              {s.kind === "fixed" ? "🏠" : "🔁"} {s.name}
+            <span className={`min-w-0 flex-1 truncate ${s.active ? "text-zinc-200" : "text-zinc-600 line-through"}`}>
+              {s.name}
             </span>
-            <span className="text-xs text-slate-500">am {s.day}.</span>
-            <span className="ml-auto font-semibold text-slate-200">
+            <span className="shrink-0 text-[11px] text-zinc-600">
+              {s.kind === "fixed" ? "fix" : "abo"} · {s.day}.
+            </span>
+            <span className="num shrink-0 font-medium text-zinc-100">
               {eur(s.amount)}
             </span>
             <button
               onClick={() => onChange(subs.filter((x) => x.id !== s.id))}
-              className="text-slate-500 transition hover:text-rose-400"
+              className="shrink-0 text-zinc-700 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
               aria-label={`${s.name} löschen`}
             >
               ✕
@@ -110,43 +101,44 @@ export default function Subs({ subs, onChange }: Props) {
 
       <form onSubmit={add} className="mt-3 grid grid-cols-4 gap-2">
         <input
-          className={`${inputCls} col-span-2`}
+          className="field col-span-2"
           placeholder="Name (z. B. Spotify)"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <input
-          className={inputCls}
+          className="field num"
           inputMode="decimal"
-          placeholder="€/Monat"
+          placeholder="€/Mon."
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
         <input
-          className={inputCls}
+          className="field num"
           inputMode="numeric"
           placeholder="Tag 1-28"
           value={day}
           onChange={(e) => setDay(e.target.value)}
         />
         <select
-          className={`${inputCls} col-span-2`}
+          className="field col-span-2"
           value={kind}
           onChange={(e) => setKind(e.target.value as "subscription" | "fixed")}
         >
-          <option value="subscription">Abo (Unterhaltung/Service)</option>
-          <option value="fixed">Fixe Kosten (Miete, Handy…)</option>
+          <option value="subscription">Abo</option>
+          <option value="fixed">Fixe Kosten</option>
         </select>
-        <button
-          type="submit"
-          className="col-span-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition hover:bg-slate-600"
-        >
+        <button type="submit" className="ghost col-span-2">
           Hinzufügen
         </button>
       </form>
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-      <p className="mt-2 text-[11px] leading-4 text-slate-500">
-        Tipp: Auch nach dem Abbuchen trotzdem als Ausgabe buchen — hier fehlt nur die Übersicht deiner festen Lasten.
+      {error && (
+        <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
+          {error}
+        </p>
+      )}
+      <p className="mt-3 text-[11px] leading-4 text-zinc-600">
+        Abgebuchte Kosten trotzdem als Ausgabe eintragen — hier fehlt nur der Überblick.
       </p>
     </section>
   );

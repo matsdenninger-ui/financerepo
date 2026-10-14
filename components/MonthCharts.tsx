@@ -5,7 +5,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -17,13 +16,21 @@ import { CATEGORY_COLORS } from "@/lib/types";
 import { eur, monthLabel, shiftMonth } from "@/lib/format";
 import { Tx } from "@/lib/types";
 
+const tooltipStyle = {
+  background: "#131316",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: 12,
+  fontSize: 13,
+  color: "#fafafa",
+  boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
+};
+
 interface Props {
   data: Pick<Tx, "date" | "amount" | "type" | "category">[];
   month: string;
 }
 
 export default function MonthCharts({ data, month }: Props) {
-  // Donut: Ausgaben des Monats nach Kategorie
   const byCat = new Map<string, number>();
   for (const t of data) {
     if (t.type === "expense" && t.date.startsWith(month)) {
@@ -32,12 +39,8 @@ export default function MonthCharts({ data, month }: Props) {
   }
   const donut = [...byCat.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({
-      name,
-      value: Math.round(value * 100) / 100,
-    }));
+    .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }));
 
-  // Balken: letzten 6 Monate Einkommen vs. Ausgaben
   const months = Array.from({ length: 6 }, (_, i) => shiftMonth(month, i - 5));
   const bars = months.map((ym) => {
     let e = 0;
@@ -58,74 +61,99 @@ export default function MonthCharts({ data, month }: Props) {
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-        <h2 className="text-sm font-semibold text-slate-300">
-          🥯 Ausgaben in {monthLabel(month)}
-        </h2>
+      <section className="card p-5">
+        <h2 className="label">Wo es hingeht</h2>
         {donut.length === 0 ? (
-          <p className="py-16 text-center text-sm text-slate-500">
-            Noch keine Ausgaben in diesem Monat erfasst.
+          <p className="py-16 text-center text-sm text-zinc-600">
+            Keine Ausgaben in {monthLabel(month)} — nice 👀
           </p>
         ) : (
-          <div className="mt-2 h-64">
+          <div className="mt-2 grid h-56 grid-cols-1 items-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={donut}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius="55%"
+                  innerRadius="58%"
                   outerRadius="80%"
-                  paddingAngle={2}
+                  paddingAngle={3}
+                  stroke="none"
+                  cornerRadius={5}
                 >
                   {donut.map((d) => (
-                    <Cell key={d.name} fill={CATEGORY_COLORS[d.name] ?? "#6b7280"} />
+                    <Cell
+                      key={d.name}
+                      fill={CATEGORY_COLORS[d.name] ?? "#52525b"}
+                      opacity={0.9}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
                   formatter={(value) => eur(Number(value))}
-                  contentStyle={{
-                    background: "#0f172a",
-                    border: "1px solid #1e293b",
-                    borderRadius: 8,
-                    color: "#e2e8f0",
-                  }}
+                  contentStyle={tooltipStyle}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
+        {donut.length > 0 && (
+          <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            {donut.slice(0, 8).map((d) => (
+              <li key={d.name} className="flex items-center gap-2 text-zinc-400">
+                <span
+                  className="inline-block h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: CATEGORY_COLORS[d.name] ?? "#52525b" }}
+                />
+                <span className="truncate">{d.name}</span>
+                <span className="ml-auto num text-zinc-200">{eur(d.value)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-        <h2 className="text-sm font-semibold text-slate-300">
-          📊 Letzte 6 Monate
-        </h2>
-        <div className="mt-2 h-64">
+      <section className="card p-5">
+        <h2 className="label">Letzte 6 Monate</h2>
+        <div className="mt-2 h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={bars}>
-              <CartesianGrid stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+            <BarChart data={bars} barGap={6}>
+              <CartesianGrid
+                stroke="rgba(255,255,255,0.06)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="name"
+                tick={{ fill: "#71717a", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+              />
               <YAxis
-                tick={{ fill: "#94a3b8", fontSize: 12 }}
+                tick={{ fill: "#71717a", fontSize: 11 }}
                 tickFormatter={(v: number) => `${v} €`}
-                width={56}
+                axisLine={false}
+                tickLine={false}
+                width={52}
               />
               <Tooltip
                 formatter={(value) => eur(Number(value))}
-                contentStyle={{
-                  background: "#0f172a",
-                  border: "1px solid #1e293b",
-                  borderRadius: 8,
-                  color: "#e2e8f0",
-                }}
+                cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                contentStyle={tooltipStyle}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="Einkommen" fill="#22c55e" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="Ausgaben" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="Einkommen" fill="var(--accent)" radius={[6, 6, 6, 6]} maxBarSize={22} />
+              <Bar dataKey="Ausgaben" fill="var(--danger)" radius={[6, 6, 6, 6]} maxBarSize={22} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+        <div className="mt-1 flex justify-center gap-5 text-xs text-zinc-400">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--accent)" }} />
+            Einkommen
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--danger)" }} />
+            Ausgaben
+          </span>
         </div>
       </section>
     </div>

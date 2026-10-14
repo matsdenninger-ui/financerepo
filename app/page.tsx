@@ -107,23 +107,25 @@ export default function Dashboard() {
 
   if (status === "loading") {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-slate-500 animate-pulse">Lade dein Dashboard…</p>
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="animate-pulse text-sm text-zinc-600">Lade…</p>
       </main>
     );
   }
   if (status === "error" || !data) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-md rounded-2xl border border-rose-900/40 bg-slate-900 p-6 text-center">
-          <p className="font-semibold text-rose-400">⚠️ Laden fehlgeschlagen</p>
-          <p className="mt-2 text-sm text-slate-400">
+      <main className="flex min-h-screen items-center justify-center px-4">
+        <div className="card max-w-md p-6 text-center">
+          <p className="font-semibold" style={{ color: "var(--danger)" }}>
+            Laden fehlgeschlagen
+          </p>
+          <p className="mt-2 text-sm text-zinc-400">
             Netzwerk-Problem oder Server-Datenbank nicht erreichbar. Auf dem
             Server ist der Upstash-Speicher nötig (siehe Anleitung).
           </p>
           <button
             onClick={() => { void load(); }}
-            className="mt-4 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+            className="btn-accent mt-4 px-4 py-2"
           >
             Erneut versuchen
           </button>
@@ -133,39 +135,42 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 pb-16 pt-8 sm:px-6">
       <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">💚 Mein Finanz-Hub</h1>
-          <p className="text-sm text-slate-400">
-            {monthLabel(month)} · {saving ? "Speichere…" : "Gespeichert ✓"}
-          </p>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-lg font-semibold tracking-tight">
+            finanz<span style={{ color: "var(--accent)" }}>.</span>
+          </h1>
+          <span className="text-xs text-zinc-600">
+            {saving ? "Speichere…" : "alles gespeichert"}
+          </span>
         </div>
         <button
           onClick={() => { void logout(); }}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800"
+          className="ghost"
         >
           Logout
         </button>
       </header>
 
-      <div className="mt-4 flex items-center justify-center gap-4">
+      <div className="mt-5 mx-auto inline-flex w-fit items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
         <button
           onClick={() => setMonth(shiftMonth(month, -1))}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm transition hover:bg-slate-800"
+          className="seg"
           aria-label="Vorheriger Monat"
         >
           ‹
         </button>
-        <span className="font-semibold">{monthLabel(month)}</span>
+        <span className="px-3 text-sm font-medium">{monthLabel(month)}</span>
         <button
           onClick={() => setMonth(shiftMonth(month, 1))}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm transition hover:bg-slate-800"
+          className="seg"
           aria-label="Nächster Monat"
         >
           ›
         </button>
       </div>
+      <div className="sr-only">{monthLabel(month)} · {saving ? "Speichere…" : "Gespeichert"}</div>
 
       <div className="mt-5 space-y-4">
         <SummaryCards income={income} expenses={expenses} fixeAnteil={fixeAnteil} />
@@ -198,8 +203,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <footer className="pt-4 text-center text-xs text-slate-600">
-          Deine Daten liegen verschlüsselt in deinem privaten Upstash-Speicher 🔒
+        <footer className="pt-6 text-center text-[11px] text-zinc-700">
+          privat · verschlüsselt · dein eigener Speicher 🔒
         </footer>
       </div>
     </main>

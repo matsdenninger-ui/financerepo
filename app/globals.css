@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0b;
+  --foreground: #fafafa;
+  --muted: #71717a;
+  --line: rgba(255, 255, 255, 0.08);
+  --card: rgba(255, 255, 255, 0.03);
+  --accent: #34d399; /* emerald-400 */
+  --danger: #fb7185; /* rose-400 */
 }
 
 @theme inline {
@@ -12,15 +17,98 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Bausteine für den cleanen Look ---------- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8125rem;
+  color: #a1a1aa;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--foreground);
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.field::placeholder {
+  color: #52525b;
+}
+.field:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.btn-accent {
+  border-radius: 0.75rem;
+  background: var(--accent);
+  color: #052e22;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: filter 0.15s ease;
+}
+.btn-accent:hover {
+  filter: brightness(1.08);
+}
+
+.seg {
+  border-radius: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  color: #a1a1aa;
+  transition: all 0.15s ease;
+}
+.seg.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--foreground);
+}
+
+/* dezente Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
 }

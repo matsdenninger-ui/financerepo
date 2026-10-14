@@ -24,7 +24,9 @@ export default function LoginPage() {
         router.refresh();
         return;
       }
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as
+        | { error?: string }
+        | null;
       setError(body?.error ?? "Login fehlgeschlagen");
     } catch {
       setError("Netzwerkfehler — bitte erneut versuchen");
@@ -34,14 +36,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-8 shadow-xl"
-      >
-        <h1 className="text-2xl font-bold text-slate-100">🔐 Mein Finanz-Hub</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Diese Seite ist privat. Bitte Passwort eingeben.
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <form onSubmit={submit} className="card w-full max-w-sm p-8">
+        <h1 className="text-xl font-semibold tracking-tight">
+          finanz<span style={{ color: "var(--accent)" }}>.</span>
+        </h1>
+        <p className="mt-2 text-sm text-zinc-500">
+          Privat und nur für dich. Passwort bitte.
         </p>
         <input
           type="password"
@@ -49,15 +50,19 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           autoFocus
           placeholder="Passwort"
-          className="mt-6 w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500"
+          className="field mt-6 py-3"
         />
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        {error && (
+          <p className="mt-3 text-xs" style={{ color: "var(--danger)" }}>
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={busy || password.length === 0}
-          className="mt-4 w-full rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:opacity-50"
+          className="btn-accent mt-4 w-full py-3 disabled:opacity-40"
         >
-          {busy ? "Prüfe…" : "Los geht's"}
+          {busy ? "Prüfe…" : "Los"}
         </button>
       </form>
     </main>

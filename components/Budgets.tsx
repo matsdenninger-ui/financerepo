@@ -11,10 +11,12 @@ interface Props {
   onChange: (budgets: Budget[]) => void;
 }
 
-const inputCls =
-  "w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-emerald-500";
-
-export default function Budgets({ budgets, transactions, month, onChange }: Props) {
+export default function Budgets({
+  budgets,
+  transactions,
+  month,
+  onChange,
+}: Props) {
   const [cat, setCat] = useState("");
   const [limit, setLimit] = useState("");
 
@@ -43,51 +45,61 @@ export default function Budgets({ budgets, transactions, month, onChange }: Prop
   ).length;
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-      <h2 className="flex items-center justify-between text-sm font-semibold text-slate-300">
-        <span>🎯 Budgets (Monat)</span>
-        {overLimit > 0 && (
-          <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-300">
-            {overLimit} über Limit ⚠️
+    <section className="card p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold">Budgets</h2>
+        {overLimit > 0 ? (
+          <span
+            className="text-xs font-medium"
+            style={{ color: "var(--danger)" }}
+          >
+            {overLimit} über Limit
+          </span>
+        ) : (
+          <span className="text-xs text-zinc-600">
+            {budgets.length} {budgets.length === 1 ? "Budget" : "Budgets"}
           </span>
         )}
-      </h2>
+      </div>
 
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-4 space-y-4">
         {budgets.length === 0 && (
-          <li className="py-3 text-sm text-slate-500">
-            Noch keine Budgets geplant — gutes Geldmanagement braucht Grenzen 😉
+          <li className="py-4 text-sm text-zinc-600">
+            Lege dein erstes Budget fest — Grenzen halten die frei.
           </li>
         )}
         {budgets.map((b) => {
-          const spent = Math.round((spentByCat.get(b.category) ?? 0) * 100) / 100;
+          const spent =
+            Math.round((spentByCat.get(b.category) ?? 0) * 100) / 100;
           const p = pct(spent, b.limit);
-          const bar =
-            p >= 100 ? "bg-rose-500" : p >= 80 ? "bg-yellow-400" : "bg-emerald-500";
+          const barColor =
+            p >= 100 ? "var(--danger)" : p >= 80 ? "#fbbf24" : "var(--accent)";
           return (
             <li key={b.category}>
               <div className="flex items-baseline justify-between text-sm">
-                <span className="flex items-center gap-2">
+                <span className="text-zinc-200">{b.category}</span>
+                <span className="num text-xs text-zinc-500">
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ background: CATEGORY_COLORS[b.category] ?? "#6b7280" }}
-                  />
-                  {b.category}
-                </span>
-                <span className={p >= 100 ? "text-rose-400" : "text-slate-300"}>
-                  {eur(spent)} / {eur(b.limit)}{" "}
-                  <span className="text-xs text-slate-500">({p} %)</span>
+                    className="font-medium"
+                    style={{ color: p >= 100 ? "var(--danger)" : "#e4e4e7" }}
+                  >
+                    {eur(spent)}
+                  </span>{" "}
+                  / {eur(b.limit)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center gap-2">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
+              <div className="mt-1.5 flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
                   <div
-                    className={`h-full rounded-full transition-all ${bar}`}
-                    style={{ width: `${Math.min(p, 100)}%` }}
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(p, 100)}%`,
+                      background: barColor,
+                    }}
                   />
                 </div>
                 <input
-                  className="w-16 rounded bg-slate-800 border border-slate-700 px-1 py-0.5 text-right text-xs text-slate-300 outline-none focus:border-emerald-500"
+                  className="w-14 rounded-md bg-white/5 px-1.5 py-0.5 text-right num text-[11px] text-zinc-400 outline-none transition focus:bg-white/10 focus:text-zinc-100"
                   value={b.limit}
                   inputMode="decimal"
                   onChange={(e) => setLimit(e.target.value)}
@@ -107,7 +119,7 @@ export default function Budgets({ budgets, transactions, month, onChange }: Prop
                   onClick={() =>
                     onChange(budgets.filter((x) => x.category !== b.category))
                   }
-                  className="text-slate-500 transition hover:text-rose-400"
+                  className="text-zinc-700 transition hover:text-rose-400"
                   aria-label={`Budget ${b.category} löschen`}
                 >
                   ✕
@@ -121,11 +133,11 @@ export default function Budgets({ budgets, transactions, month, onChange }: Prop
       {freeCats.length > 0 && (
         <form onSubmit={add} className="mt-4 flex gap-2">
           <select
-            className={inputCls}
+            className="field"
             value={cat}
             onChange={(e) => setCat(e.target.value)}
           >
-            <option value="">Kategorie…</option>
+            <option value="">Kategorie wählen…</option>
             {freeCats.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -133,17 +145,14 @@ export default function Budgets({ budgets, transactions, month, onChange }: Prop
             ))}
           </select>
           <input
-            className={inputCls}
+            className="field num max-w-24"
             inputMode="decimal"
             placeholder="Limit €"
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
           />
-          <button
-            type="submit"
-            className="shrink-0 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition hover:bg-slate-600"
-          >
-            +
+          <button type="submit" className="ghost shrink-0">
+            Hinzufügen
           </button>
         </form>
       )}

@@ -10,50 +10,55 @@ export default function SummaryCards({ income, expenses, fixeAnteil }: Props) {
   const saldo = income - expenses;
   const quote = income > 0 ? Math.round((saldo / income) * 100) : 0;
 
+  const dot = (color: string) => (
+    <span
+      className="inline-block h-1.5 w-1.5 rounded-full"
+      style={{ background: color }}
+    />
+  );
+
   const cards = [
     {
       label: "Einkommen",
       value: eur(income),
-      tone: "text-emerald-400",
-      icon: "💰",
+      color: "var(--accent)",
+      footer: null,
     },
     {
       label: "Ausgaben",
       value: eur(expenses),
-      tone: "text-rose-400",
-      icon: "🧾",
+      color: "var(--danger)",
+      footer: null,
     },
     {
-      label: "Übrig / saldo",
+      label: "Übrig",
       value: eur(saldo),
-      tone: saldo >= 0 ? "text-sky-400" : "text-rose-500",
-      icon: "⚖️",
+      color: saldo >= 0 ? "#fafafa" : "var(--danger)",
+      footer: `Fixverpflichtungen: ${eur(fixeAnteil)}/Monat`,
     },
     {
       label: "Sparquote",
       value: `${quote} %`,
-      tone: quote >= 20 ? "text-emerald-400" : quote >= 10 ? "text-yellow-400" : "text-rose-400",
-      sub: quote < 20 ? "Ziel: ≥ 20 %" : "Stark! 💪",
-      icon: "📈",
+      color: quote >= 20 ? "var(--accent)" : quote >= 10 ? "#fbbf24" : "var(--danger)",          footer:
+        quote >= 20
+          ? "Stark — weiter so 💪"
+          : `20 %-Ziel: ${eur(Math.round(income * 0.2))} monatlich`,
     },
-  ] as const;
+  ];
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {cards.map((c) => (
-        <div
-          key={c.label}
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wide text-slate-400">
-              {c.label}
-            </span>
-            <span aria-hidden>{c.icon}</span>
+        <div key={c.label} className="card p-5">
+          <div className="label flex items-center gap-2">
+            {dot(c.color)}
+            {c.label}
           </div>
-          <p className={`mt-2 text-2xl font-bold ${c.tone}`}>{c.value}</p>
-          {"sub" in c && c.sub && (
-            <p className="mt-1 text-xs text-slate-500">{c.sub}</p>
+          <p className="mt-3 text-3xl font-semibold num" style={{ color: c.color }}>
+            {c.value}
+          </p>
+          {c.footer && (
+            <p className="mt-2 text-xs text-zinc-500">{c.footer}</p>
           )}
         </div>
       ))}
