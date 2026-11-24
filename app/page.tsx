@@ -31,6 +31,10 @@ export default function Dashboard() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/data", { cache: "no-store" });
+      if (res.status === 401) {
+        router.replace("/login");
+        return;
+      }
       if (!res.ok) throw new Error(String(res.status));
       const body = (await res.json()) as FinanceData;
       // Beim allerersten Start sinnvolle Standard-Budgets vorschlagen
@@ -44,7 +48,7 @@ export default function Dashboard() {
     } catch {
       setStatus("error");
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     setMonth(ymOf(todayISO()));
@@ -68,6 +72,11 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(next),
       });
+      if (res.status === 401) {
+        alert("Sitzung abgelaufen — bitte neu einloggen.");
+        router.replace("/login");
+        return;
+      }
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         alert(body?.error ?? "Speichern fehlgeschlagen");
@@ -77,7 +86,7 @@ export default function Dashboard() {
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [router]);
 
   function update(mutator: (d: FinanceData) => FinanceData) {
     if (!data) return;

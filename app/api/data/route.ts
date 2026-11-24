@@ -3,9 +3,41 @@ import { getData, setData, isUpstashConfigured } from "@/lib/store";
 import { EXPENSE_CATEGORIES, FinanceData, INCOME_CATEGORIES } from "@/lib/types";
 
 
+/** Max. Größe des gespeicherten Dokuments (schützt vor Speicher-/Kosten-DoS) */
+const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_AMOUNT = 1_000_000_000;
+const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
 function isValidNumber(n: unknown): n is number {
-  return typeof n === "number" && Number.isFinite(n) && n >= 0;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= MAX_AMOUNT;
 }
+
+function isValidId(v: unknown): v is string {
+  return typeof v === "string" && ID_RE.test(v);
+}
+
+/** Echtes Kalenderdatum im Format YYYY-MM-DD */
+function isValidDate(v: unknown): v is string {
+  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
+/** Steuerzeichen & unsichtbare Bidi-Zeichen entfernen, trimmen, kürzen */
+function cleanText(v: string, max: number): string {
+  return v
+    .replace(/[\u0000-\u001F\u007F-\u009F\u202A-\u202E\u2066-\u2069]/g, "")
+    .trim()
+    .slice(0, max);
+}
+
+function isValidName(v: unknown): v is string {
+  if (typeof v !== "string") return false;
+  const c = cleanText(v, 60);
+  return c.length > 0;
+}
+
+const NO_STORE = { "Cache-Control": "no-store, max-age=0" };
 
 const CATEGORIES: ReadonlySet<string> = new Set([
   ...EXPENSE_CATEGORIES,
@@ -24,10 +56,8 @@ function sanitize(input: unknown): FinanceData {
         if (!t || typeof t !== "object") return false;
         const o = t as Record<string, unknown>;
         return (
-          typeof o.id === "string" &&
-          o.id.length <= 64 &&
-          typeof o.date === "string" &&
-          /^\d{4}-\d{2}-\d{2}$/.test(o.date) &&
+          isValidId(o.id) &&
+          isValidDate(o.date) &&
           isValidNumber(o.amount) &&
           (o.type === "income" || o.type === "expense") &&
           typeof o.category === "string" &&
@@ -41,7 +71,7 @@ function sanitize(input: unknown): FinanceData {
         amount: t.amount as number,
         type: t.type as "income" | "expense",
         category: t.category as string,
-        note: typeof t.note === "string" ? t.note.slice(0, 200) : undefined,
+        note: typeof t.note === "string" ? cleanText(t.note, 200) || undefined : undefined,
       }));
   }
 
@@ -56,6 +86,9 @@ function sanitize(input: unknown): FinanceData {
           isValidNumber(o.limit)
         );
       })
+      .filter(
+        (b, i, arr) => arr.findIndex((x) => x.category === b.category) === i
+      )
       .slice(0, 50)
       .map((b) => ({
         category: b.category as string,
@@ -69,11 +102,8 @@ function sanitize(input: unknown): FinanceData {
         if (!s || typeof s !== "object") return false;
         const o = s as Record<string, unknown>;
         return (
-          typeof o.id === "string" &&
-          o.id.length <= 64 &&
-          typeof o.name === "string" &&
-          o.name.length > 0 &&
-          o.name.length <= 60 &&
+          isValidId(o.id) &&
+          isValidName(o.name) &&
           isValidNumber(o.amount) &&
           typeof o.day === "number" &&
           Number.isInteger(o.day) &&
@@ -86,7 +116,7 @@ function sanitize(input: unknown): FinanceData {
       .slice(0, 100)
       .map((s) => ({
         id: s.id as string,
-        name: s.name as string,
+        name: cleanText(s.name as string, 60),
         amount: s.amount as number,
         day: s.day as number,
         kind: s.kind as "subscription" | "fixed",
@@ -100,11 +130,8 @@ function sanitize(input: unknown): FinanceData {
         if (!g || typeof g !== "object") return false;
         const o = g as Record<string, unknown>;
         return (
-          typeof o.id === "string" &&
-          o.id.length <= 64 &&
-          typeof o.name === "string" &&
-          o.name.length > 0 &&
-          o.name.length <= 60 &&
+          isValidId(o.id) &&
+          isValidName(o.name) &&
           isValidNumber(o.target) &&
           isValidNumber(o.saved)
         );
@@ -112,11 +139,11 @@ function sanitize(input: unknown): FinanceData {
       .slice(0, 50)
       .map((g) => ({
         id: g.id as string,
-        name: g.name as string,
+        name: cleanText(g.name as string, 60),
         target: g.target as number,
         saved: g.saved as number,
         deadline:
-          typeof g.deadline === "string" && /^\d{4}-\d{2}-\d{2}$/.test(g.deadline)
+          isValidDate(g.deadline)
             ? g.deadline
             : undefined,
       }));
@@ -129,11 +156,11 @@ export async function GET() {
   if (!isUpstashConfigured() && process.env.VERCEL) {
     return NextResponse.json(
       { error: "Server-Datenbank nicht konfiguriert (UPSTASH_REDIS_REST_URL/TOKEN fehlen)" },
-      { status: 503 }
+      { status: 503, headers: NO_STORE }
     );
   }
   try {
-    return NextResponse.json(await getData());
+    return NextResponse.json(await getData(), { headers: NO_STORE });
   } catch (err) {
     console.error("GET /api/data failed:", err);
     return NextResponse.json({ error: "Laden fehlgeschlagen" }, { status: 500 });
@@ -147,16 +174,27 @@ export async function PUT(req: NextRequest) {
       { status: 503 }
     );
   }
+  if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
+    return NextResponse.json({ error: "Content-Type muss application/json sein" }, { status: 415 });
+  }
+  const len = Number(req.headers.get("content-length") ?? "0");
+  if (len > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Daten zu groß" }, { status: 413 });
+  }
   let raw: unknown;
   try {
-    raw = await req.json();
+    const text = await req.text();
+    if (text.length > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Daten zu groß" }, { status: 413 });
+    }
+    raw = JSON.parse(text);
   } catch {
     return NextResponse.json({ error: "Ungültiges JSON" }, { status: 400 });
   }
   try {
     const data = sanitize(raw);
     await setData(data);
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_STORE });
   } catch (err) {
     console.error("PUT /api/data failed:", err);
     return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });

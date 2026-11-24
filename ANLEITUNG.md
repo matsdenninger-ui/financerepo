@@ -21,10 +21,34 @@ npm run dev                  # → http://localhost:3000
 
 ## Daten & Sicherheit
 
-- Login-Schutz über `APP_PASSWORD` (Hash-Vergleich im Proxy-Middleware-Layer, httpOnly-Cookie).
 - Daten liegen in **einem einzelnen JSON-Dokument** (`finanz:daten` in Upstash Redis).
 - Lokaler Dev-Modus ohne Upstash speichert in `.data/finanz.json` (nicht committet, `.gitignore`).
 - Auf Vercel MUSS Upstash konfiguriert sein (Vercel-Serverless hat kein dauerhaftes Dateisystem).
+
+### Sicherheitsmaßnahmen
+
+| Schutz | Wie |
+|---|---|
+| Login | Passwortvergleich in konstanter Laufzeit, Zufallsverzögerung |
+| Bruteforce | max. 5 Fehlversuche / 15 Min. pro IP, 50 / Stunde global (über Upstash, gilt für alle Server-Instanzen) |
+| Session | HMAC-signiertes Cookie mit Ablauf (7 Tage), `__Host-`-Präfix, `HttpOnly`, `Secure`, `SameSite=Strict` |
+| Alle abmelden | `APP_PASSWORD` **oder** `SESSION_SECRET` ändern → alle Sessions sofort ungültig |
+| Fail-closed | Fehlt Passwort/Secret oder ist das Passwort zu kurz, ist die App in Produktion komplett gesperrt (503) |
+| CSRF | Schreibende API-Requests nur mit eigenem `Origin` / `Sec-Fetch-Site: same-origin` |
+| Eingaben | Whitelist-Schema, echte Datumsprüfung, Längen-/Betragsgrenzen, Steuerzeichen werden entfernt, max. 2 MB |
+| Browser | CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, Permissions-Policy, `noindex` |
+| Caching | API-Antworten `Cache-Control: no-store` (keine Finanzdaten in Proxies/CDN-Caches) |
+| Abhängigkeiten | Next.js auf gepatchter Version, Dependabot prüft wöchentlich auf Sicherheitsupdates |
+
+### Was DU noch tun solltest (kann der Code nicht für dich)
+
+1. **Starkes Passwort**: mind. 12 Zeichen, besser eine Passphrase mit 4–5 zufälligen Wörtern. Nirgends sonst verwenden.
+2. **`SESSION_SECRET` setzen**: `openssl rand -base64 48` → in Vercel als Environment Variable.
+3. **2-Faktor-Login** bei GitHub, Vercel und Upstash aktivieren — wer dort reinkommt, kommt an alles.
+4. **Repo privat lassen**, in GitHub unter *Settings → Code security* „Secret scanning“ und „Dependabot alerts“ einschalten.
+5. **Keine Secrets committen**: `.env*` ist ignoriert, nur `.env.example` (ohne Werte) liegt im Repo.
+6. **Upstash-Token** nie weitergeben; bei Verdacht in Upstash rotieren und in Vercel ersetzen.
+7. Optional: **Vercel Deployment Protection** für Preview-Deployments einschalten.
 
 ## Deployment: Vercel + GitHub + Upstash (wichtige Reihenfolge)
 
@@ -46,7 +70,8 @@ npm run dev                  # → http://localhost:3000
    - https://vercel.com → **Add New → Project → Import** dieses Repo.
    - Framework-Erkennung: Next.js, keine extra Build-Settings nötig.
    - **Environment Variables** anlegen (für Production + Preview):
-     - `APP_PASSWORD` = dein Dashboard-Passwort
+     - `APP_PASSWORD` = dein Dashboard-Passwort (mind. 12 Zeichen)
+     - `SESSION_SECRET` = Zufallswert, z. B. aus `openssl rand -base64 48` (mind. 32 Zeichen)
      - `UPSTASH_REDIS_REST_URL` = von Upstash
      - `UPSTASH_REDIS_REST_TOKEN` = von Upstash
    - **Deploy**.
@@ -61,7 +86,7 @@ npm run dev                  # → http://localhost:3000
 Browser (React/Tailwind)
    │  fetch mit httpOnly-Session-Cookie
    ▼
-proxy.ts            ← Login-Schutz (SHA-256-Token-Abgleich)
+proxy.ts            ← Login-Schutz (signiertes Session-Token), CSRF-Check, Fail-closed
    ▼
 app/api/data/route.ts  ← PUT mit Whitelist-Schema-Validierung
    ▼
